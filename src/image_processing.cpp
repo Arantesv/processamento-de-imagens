@@ -95,6 +95,32 @@ namespace proj1
             return static_cast<Uint8>(rounded);
         }
 
+        std::string classifyBrightness(double mean)
+        {
+            if (mean < 85.0)
+            {
+                return "escura";
+            }
+            if (mean > 170.0)
+            {
+                return "clara";
+            }
+            return "media";
+        }
+
+        std::string classifyContrast(double stddev)
+        {
+            if (stddev < 42.5)
+            {
+                return "baixo";
+            }
+            if (stddev > 85.0)
+            {
+                return "alto";
+            }
+            return "medio";
+        }
+
     }
 
     void SurfaceDeleter::operator()(SDL_Surface *surface) const
@@ -187,6 +213,57 @@ namespace proj1
         }
 
         return grayscale;
+    }
+
+    ImageAnalysis analyzeGrayscaleSurface(SDL_Surface *grayscaleSurface)
+    {
+        if (!grayscaleSurface)
+        {
+            throw std::runtime_error("Surface invalida ao analisar histograma.");
+        }
+
+        ImageAnalysis analysis;
+        const double totalPixels = static_cast<double>(grayscaleSurface->w) * static_cast<double>(grayscaleSurface->h);
+
+        SurfaceLockGuard lock(grayscaleSurface);
+        const PixelContext ctx = getPixelContext(grayscaleSurface);
+
+        for (int y = 0; y < grayscaleSurface->h; ++y)
+        {
+            for (int x = 0; x < grayscaleSurface->w; ++x)
+            {
+                const Uint8 gray = readGray(grayscaleSurface, x, y, ctx);
+                ++analysis.histogram[gray];
+            }
+        }
+
+        double weightedSum = 0.0;
+        for (int intensity = 0; intensity < 256; ++intensity)
+        {
+            weightedSum += static_cast<double>(intensity) * static_cast<double>(analysis.histogram[intensity]);
+        }
+        analysis.mean = weightedSum / totalPixels;
+
+        double variance = 0.0;
+        for (int intensity = 0; intensity < 256; ++intensity)
+        {
+            const double delta = static_cast<double>(intensity) - analysis.mean;
+            variance += delta * delta * static_cast<double>(analysis.histogram[intensity]);
+        }
+        variance /= totalPixels;
+        analysis.stddev = std::sqrt(variance);
+
+        analysis.brightnessClass = classifyBrightness(analysis.mean);
+        analysis.contrastClass = classifyContrast(analysis.stddev);
+
+        return analysis;
+    }
+
+    std::string formatDouble(double value, int precision)
+    {
+        std::ostringstream out;
+        out << std::fixed << std::setprecision(precision) << value;
+        return out.str();
     }
 
 }

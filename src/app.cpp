@@ -252,6 +252,12 @@ namespace proj1
         }
     }
 
+    void Application::updatePanelState()
+    {
+        currentAnalysis_ = analyzeGrayscaleSurface(currentSurface());
+        toggleButton_.label = showingEqualized_ ? "Ver original" : "Equalizar";
+    }
+
     void Application::render()
     {
         renderImageWindow();
@@ -266,6 +272,40 @@ namespace proj1
         SDL_RenderPresent(mainRenderer_.get());
     }
 
+    void Application::renderHistogramWindow()
+    {
+        SDL_SetRenderDrawColor(histogramRenderer_.get(), 238, 241, 245, 255);
+        SDL_RenderClear(histogramRenderer_.get());
+
+        const SDL_Color titleColor{20, 20, 20, 255};
+        const SDL_Color bodyColor{35, 35, 35, 255};
+        const SDL_Color infoColor{70, 70, 70, 255};
+
+        ui::renderText(histogramRenderer_.get(), titleFont_.get(), "Processamento de Histograma", 260, 18, titleColor, true, 0);
+
+        const SDL_FRect histogramRect{30.0f, 72.0f, 460.0f, 260.0f};
+        ui::drawHistogram(histogramRenderer_.get(), currentAnalysis_.histogram, histogramRect);
+
+        ui::renderText(histogramRenderer_.get(), bodyFont_.get(), "0", 30, 338, bodyColor, false, 0);
+        ui::renderText(histogramRenderer_.get(), bodyFont_.get(), "255", 470, 338, bodyColor, false, 0);
+        ui::renderText(histogramRenderer_.get(), bodyFont_.get(), "Intensidade", 260, 338, bodyColor, true, 0);
+
+        const std::string imageType = std::string("Imagem original: ") + (originalWasGrayscale_ ? "ja estava em escala de cinza" : "colorida (convertida para escala de cinza)");
+        const std::string meanText = "Media de intensidade: " + formatDouble(currentAnalysis_.mean) + " (" + currentAnalysis_.brightnessClass + ")";
+        const std::string stddevText = "Desvio padrao: " + formatDouble(currentAnalysis_.stddev) + " (contraste " + currentAnalysis_.contrastClass + ")";
+        const std::string stateText = std::string("Visualizacao atual: ") + (showingEqualized_ ? "histograma equalizado" : "imagem original em cinza");
+        const std::string saveText = "Tecla S: salva a imagem atual em output_image.png";
+
+        ui::renderText(histogramRenderer_.get(), bodyFont_.get(), imageType, 30, 382, bodyColor, false, 460);
+        ui::renderText(histogramRenderer_.get(), bodyFont_.get(), meanText, 30, 432, bodyColor, false, 460);
+        ui::renderText(histogramRenderer_.get(), bodyFont_.get(), stddevText, 30, 468, bodyColor, false, 460);
+        ui::renderText(histogramRenderer_.get(), bodyFont_.get(), stateText, 30, 504, bodyColor, false, 460);
+        ui::renderText(histogramRenderer_.get(), bodyFont_.get(), saveText, 30, 540, infoColor, false, 460);
+
+        ui::drawButton(histogramRenderer_.get(), bodyFont_.get(), toggleButton_);
+
+        SDL_RenderPresent(histogramRenderer_.get());
+    }
 
     SDL_Surface *Application::currentSurface() const
     {
