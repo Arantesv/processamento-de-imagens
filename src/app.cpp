@@ -152,13 +152,106 @@ namespace proj1
         }
     }
 
-    void Application::loadAndPrepareImages()
+        void Application::loadAndPrepareImages()
     {
         SurfacePtr loaded = loadImageAsRGBA32(imagePath_);
         originalWasGrayscale_ = isAlreadyGrayscale(loaded.get());
         grayscaleSurface_ = buildGrayscaleSurface(loaded.get());
         equalizedSurface_ = buildEqualizedSurface(grayscaleSurface_.get());
         showingEqualized_ = false;
+    }
+
+    void Application::createWindows()
+    {
+        if (!grayscaleSurface_)
+        {
+            throw std::runtime_error("A imagem em escala de cinza nao foi preparada.");
+        }
+
+        mainWindow_.reset(SDL_CreateWindow("Proj1 - Imagem", grayscaleSurface_->w, grayscaleSurface_->h, 0));
+        if (!mainWindow_)
+        {
+            throw std::runtime_error(std::string("Falha ao criar a janela principal: ") + SDL_GetError());
+        }
+
+        SDL_SetWindowPosition(mainWindow_.get(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+
+        histogramWindow_.reset(SDL_CreatePopupWindow(mainWindow_.get(),
+                                                     grayscaleSurface_->w + 24,
+                                                     0,
+                                                     ui::kPanelWidth,
+                                                     ui::kPanelHeight,
+                                                     SDL_WINDOW_POPUP_MENU));
+
+        if (histogramWindow_)
+        {
+            secondaryIsPopup_ = true;
+        }
+        else
+        {
+            histogramWindow_.reset(SDL_CreateWindow("Proj1 - Histograma",
+                                                    ui::kPanelWidth,
+                                                    ui::kPanelHeight,
+                                                    0));
+            if (!histogramWindow_)
+            {
+                throw std::runtime_error(std::string("Falha ao criar a janela secundaria: ") + SDL_GetError());
+            }
+            secondaryIsPopup_ = false;
+            syncSecondaryWindow();
+        }
+
+        mainWindowId_ = SDL_GetWindowID(mainWindow_.get());
+        histogramWindowId_ = SDL_GetWindowID(histogramWindow_.get());
+
+        if (mainWindowId_ == 0 || histogramWindowId_ == 0)
+        {
+            throw std::runtime_error(std::string("Falha ao obter IDs das janelas: ") + SDL_GetError());
+        }
+    }
+
+    void Application::createRenderers()
+    {
+        mainRenderer_.reset(SDL_CreateRenderer(mainWindow_.get(), nullptr));
+        if (!mainRenderer_)
+        {
+            throw std::runtime_error(std::string("Falha ao criar renderer da janela principal: ") + SDL_GetError());
+        }
+
+        histogramRenderer_.reset(SDL_CreateRenderer(histogramWindow_.get(), nullptr));
+        if (!histogramRenderer_)
+        {
+            throw std::runtime_error(std::string("Falha ao criar renderer da janela secundaria: ") + SDL_GetError());
+        }
+    }
+
+    void Application::createOrUpdateTexture()
+    {
+        imageTexture_.reset(SDL_CreateTextureFromSurface(mainRenderer_.get(), currentSurface()));
+        if (!imageTexture_)
+        {
+            throw std::runtime_error(std::string("Falha ao criar textura da imagem: ") + SDL_GetError());
+        }
+    }
+
+    void Application::render()
+    {
+        renderImageWindow();
+        renderHistogramWindow();
+    }
+
+    void Application::renderImageWindow()
+    {
+        SDL_SetRenderDrawColor(mainRenderer_.get(), 20, 20, 20, 255);
+        SDL_RenderClear(mainRenderer_.get());
+        SDL_RenderTexture(mainRenderer_.get(), imageTexture_.get(), nullptr, nullptr);
+        SDL_RenderPresent(mainRenderer_.get());
+    }
+
+
+    SDL_Surface *Application::currentSurface() const
+    {
+        return showingEqualized_ ? equalizedSurface_.get() : grayscaleSurface_.get();
     }
 
 }
