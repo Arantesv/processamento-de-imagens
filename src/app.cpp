@@ -398,6 +398,42 @@ namespace proj1
         SDL_RenderPresent(histogramRenderer_.get());
     }
 
+    void Application::toggleEqualization()
+    {
+        showingEqualized_ = !showingEqualized_;
+        createOrUpdateTexture();
+        updatePanelState();
+    }
+
+    void Application::saveCurrentImage() const
+    {
+        if (!IMG_SavePNG(currentSurface(), "output_image.png"))
+        {
+            std::cerr << "Falha ao salvar output_image.png: " << SDL_GetError() << '\n';
+            return;
+        }
+
+        std::cout << "Imagem salva com sucesso em output_image.png\n";
+    }
+
+    void Application::syncSecondaryWindow()
+    {
+        if (secondaryIsPopup_ || !mainWindow_ || !histogramWindow_)
+        {
+            return;
+        }
+
+        int mainX = 0;
+        int mainY = 0;
+        int mainW = 0;
+        int mainH = 0;
+        SDL_GetWindowPosition(mainWindow_.get(), &mainX, &mainY);
+        SDL_GetWindowSize(mainWindow_.get(), &mainW, &mainH);
+
+        const int gap = 24;
+        SDL_SetWindowPosition(histogramWindow_.get(), mainX + mainW + gap, mainY);
+    }
+
     SDL_Surface *Application::currentSurface() const
     {
         return showingEqualized_ ? equalizedSurface_.get() : grayscaleSurface_.get();

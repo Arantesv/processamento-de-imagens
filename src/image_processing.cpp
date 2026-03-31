@@ -259,6 +259,55 @@ namespace proj1
         return analysis;
     }
 
+    SurfacePtr buildEqualizedSurface(SDL_Surface *grayscaleSurface)
+    {
+        if (!grayscaleSurface)
+        {
+            throw std::runtime_error("Surface invalida ao equalizar histograma.");
+        }
+
+        const ImageAnalysis analysis = analyzeGrayscaleSurface(grayscaleSurface);
+        const int totalPixels = grayscaleSurface->w * grayscaleSurface->h;
+
+        std::vector<Uint8> mapping(256, 0);
+        int cumulative = 0;
+        for (int intensity = 0; intensity < 256; ++intensity)
+        {
+            cumulative += analysis.histogram[intensity];
+            const double sk = 255.0 * static_cast<double>(cumulative) / static_cast<double>(totalPixels);
+            mapping[intensity] = static_cast<Uint8>(std::lround(sk));
+        }
+
+        SDL_Surface *clone = SDL_DuplicateSurface(grayscaleSurface);
+        if (!clone)
+        {
+            throw std::runtime_error(std::string("Nao foi possivel duplicar a imagem em tons de cinza: ") + SDL_GetError());
+        }
+
+        SurfacePtr equalized(clone);
+        SurfaceLockGuard sourceLock(grayscaleSurface);
+        SurfaceLockGuard targetLock(equalized.get());
+
+        const PixelContext sourceCtx = getPixelContext(grayscaleSurface);
+        const PixelContext targetCtx = getPixelContext(equalized.get());
+
+        for (int y = 0; y < grayscaleSurface->h; ++y)
+        {
+            for (int x = 0; x < grayscaleSurface->w; ++x)
+            {
+                Uint8 r = 0;
+                Uint8 g = 0;
+                Uint8 b = 0;
+                Uint8 a = 0;
+                SDL_GetRGBA(*pixelAt(grayscaleSurface, x, y), sourceCtx.details, sourceCtx.palette, &r, &g, &b, &a);
+                const Uint8 newGray = mapping[r];
+                writeGray(equalized.get(), x, y, newGray, a, targetCtx);
+            }
+        }
+
+        return equalized;
+    }
+
     std::string formatDouble(double value, int precision)
     {
         std::ostringstream out;
