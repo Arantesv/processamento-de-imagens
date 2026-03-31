@@ -1,0 +1,8 @@
+proj1
+build/
+build-cmake/
+output_image.png
+*.o
+*.obj
+*.exe
+.DS_Store
