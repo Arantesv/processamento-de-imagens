@@ -152,7 +152,7 @@ namespace proj1
         }
     }
 
-        void Application::loadAndPrepareImages()
+    void Application::loadAndPrepareImages()
     {
         SurfacePtr loaded = loadImageAsRGBA32(imagePath_);
         originalWasGrayscale_ = isAlreadyGrayscale(loaded.get());
@@ -225,6 +225,24 @@ namespace proj1
         }
     }
 
+    void Application::loadFonts()
+    {
+        fontPath_ = resolveFontPath();
+        if (fontPath_.empty())
+        {
+            throw std::runtime_error(
+                "Nenhuma fonte TrueType foi encontrada. Defina a variavel de ambiente CV_FONT_PATH apontando para um arquivo .ttf/.ttc valido.");
+        }
+
+        titleFont_.reset(TTF_OpenFont(fontPath_.c_str(), 24.0f));
+        bodyFont_.reset(TTF_OpenFont(fontPath_.c_str(), 17.0f));
+
+        if (!titleFont_ || !bodyFont_)
+        {
+            throw std::runtime_error(std::string("Falha ao carregar a fonte '") + fontPath_ + "': " + SDL_GetError());
+        }
+    }
+
     void Application::createOrUpdateTexture()
     {
         imageTexture_.reset(SDL_CreateTextureFromSurface(mainRenderer_.get(), currentSurface()));
@@ -252,6 +270,42 @@ namespace proj1
     SDL_Surface *Application::currentSurface() const
     {
         return showingEqualized_ ? equalizedSurface_.get() : grayscaleSurface_.get();
+    }
+
+    std::string Application::resolveFontPath() const
+    {
+        if (const char *envFont = std::getenv("CV_FONT_PATH"))
+        {
+            if (TTF_Font *font = TTF_OpenFont(envFont, 16.0f))
+            {
+                TTF_CloseFont(font);
+                return envFont;
+            }
+        }
+
+        std::vector<std::string> candidates = {
+            "./font.ttf",
+            "./assets/font.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            "C:/Windows/Fonts/arial.ttf",
+            "C:/Windows/Fonts/segoeui.ttf",
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
+            "/System/Library/Fonts/Supplemental/Helvetica.ttc"};
+
+        for (const std::string &path : candidates)
+        {
+            if (TTF_Font *font = TTF_OpenFont(path.c_str(), 16.0f))
+            {
+                TTF_CloseFont(font);
+                return path;
+            }
+        }
+
+        return std::string();
     }
 
 }
