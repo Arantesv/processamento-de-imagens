@@ -152,4 +152,13 @@ namespace proj1
         }
     }
 
+    void Application::loadAndPrepareImages()
+    {
+        SurfacePtr loaded = loadImageAsRGBA32(imagePath_);
+        originalWasGrayscale_ = isAlreadyGrayscale(loaded.get());
+        grayscaleSurface_ = buildGrayscaleSurface(loaded.get());
+        equalizedSurface_ = buildEqualizedSurface(grayscaleSurface_.get());
+        showingEqualized_ = false;
+    }
+
 }
