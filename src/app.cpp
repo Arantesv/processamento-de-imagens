@@ -258,6 +258,97 @@ namespace proj1
         toggleButton_.label = showingEqualized_ ? "Ver original" : "Equalizar";
     }
 
+    void Application::handleKeyDown(const SDL_Event &event, bool &running)
+    {
+        const SDL_Keycode key = event.key.key;
+        if (key == SDLK_ESCAPE)
+        {
+            running = false;
+            return;
+        }
+
+        if (key == SDLK_S)
+        {
+            saveCurrentImage();
+        }
+    }
+
+    void Application::handleMouseMotion(const SDL_Event &event)
+    {
+        if (event.motion.windowID != histogramWindowId_)
+        {
+            return;
+        }
+
+        const bool inside = ui::pointInRect(event.motion.x, event.motion.y, toggleButton_.rect);
+        if (togglePressed_)
+        {
+            toggleButton_.state = inside ? ui::ButtonVisualState::Pressed : ui::ButtonVisualState::Normal;
+        }
+        else
+        {
+            toggleButton_.state = inside ? ui::ButtonVisualState::Hover : ui::ButtonVisualState::Normal;
+        }
+    }
+
+    void Application::handleMouseButtonDown(const SDL_Event &event)
+    {
+        if (event.button.windowID != histogramWindowId_)
+        {
+            return;
+        }
+        if (event.button.button != SDL_BUTTON_LEFT)
+        {
+            return;
+        }
+
+        if (ui::pointInRect(event.button.x, event.button.y, toggleButton_.rect))
+        {
+            togglePressed_ = true;
+            toggleButton_.state = ui::ButtonVisualState::Pressed;
+        }
+    }
+
+    void Application::handleMouseButtonUp(const SDL_Event &event)
+    {
+        if (event.button.windowID != histogramWindowId_)
+        {
+            return;
+        }
+        if (event.button.button != SDL_BUTTON_LEFT)
+        {
+            return;
+        }
+
+        const bool inside = ui::pointInRect(event.button.x, event.button.y, toggleButton_.rect);
+        const bool shouldToggle = togglePressed_ && inside;
+
+        togglePressed_ = false;
+        toggleButton_.state = inside ? ui::ButtonVisualState::Hover : ui::ButtonVisualState::Normal;
+
+        if (shouldToggle)
+        {
+            toggleEqualization();
+        }
+    }
+
+    void Application::handleWindowEvent(const SDL_Event &event, bool &running)
+    {
+        if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+        {
+            if (event.window.windowID == mainWindowId_ || event.window.windowID == histogramWindowId_)
+            {
+                running = false;
+            }
+            return;
+        }
+
+        if (event.type == SDL_EVENT_WINDOW_MOVED && event.window.windowID == mainWindowId_)
+        {
+            syncSecondaryWindow();
+        }
+    }
+
     void Application::render()
     {
         renderImageWindow();

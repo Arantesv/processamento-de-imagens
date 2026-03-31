@@ -69,6 +69,44 @@ namespace proj1
             return ok;
         }
 
+        void drawButton(SDL_Renderer *renderer, TTF_Font *font, const Button &button)
+        {
+            if (!renderer)
+            {
+                return;
+            }
+
+            Uint8 fillR = 45;
+            Uint8 fillG = 125;
+            Uint8 fillB = 246;
+
+            switch (button.state)
+            {
+            case ButtonVisualState::Hover:
+                fillR = 94;
+                fillG = 168;
+                fillB = 255;
+                break;
+            case ButtonVisualState::Pressed:
+                fillR = 25;
+                fillG = 85;
+                fillB = 180;
+                break;
+            case ButtonVisualState::Normal:
+            default:
+                break;
+            }
+
+            SDL_SetRenderDrawColor(renderer, fillR, fillG, fillB, 255);
+            SDL_RenderFillRect(renderer, &button.rect);
+
+            SDL_SetRenderDrawColor(renderer, 18, 55, 110, 255);
+            SDL_RenderRect(renderer, &button.rect);
+
+            const int textX = static_cast<int>(button.rect.x + button.rect.w * 0.5f);
+            const int textY = static_cast<int>(button.rect.y + button.rect.h * 0.5f - 10.0f);
+            renderText(renderer, font, button.label, textX, textY, SDL_Color{255, 255, 255, 255}, true, 0);
+        }
 
         void drawHistogram(SDL_Renderer *renderer, const Histogram &histogram, const SDL_FRect &plotArea)
         {
